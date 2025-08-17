@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react'; // Ensure these hooks are imported
 import { Send, MessageCircle, X, Minimize2 } from 'lucide-react';
 
 interface Message {
@@ -21,7 +21,7 @@ interface ChatbotWidgetProps {
   config: ChatbotConfig;
 }
 
-export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ config }) => {
+export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ config }) => { // React.FC is still needed for type checking
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -240,7 +240,6 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ config }) => {
                 placeholder={placeholder}
                 disabled={isLoading}
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-opacity-50 text-sm disabled:opacity-50"
-                style={{ focusRingColor: primaryColor }}
               />
               <button
                 type="submit"

@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { MessageCircle, Code, Copy, Check, Palette, Settings } from 'lucide-react';
+import { MessageCircle, Code, Copy, Check, Settings } from 'lucide-react';
 
 function App() {
   const [copied, setCopied] = useState(false);
   const [config, setConfig] = useState({
-    apiUrl: 'http://localhost:3001',
+    apiUrl: 'http://localhost:8000',
     primaryColor: '#3B82F6',
     position: 'bottom-right' as 'bottom-right' | 'bottom-left',
     title: 'Chat Support',
