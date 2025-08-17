@@ -52,14 +52,3 @@ window.ChatbotWidget = {
   init: (config) => widgetController.init(config),
   destroy: () => widgetController.destroy()
 };
-
-// Auto-initialize if config is provided
-const script = document.currentScript as HTMLScriptElement;
-if (script && script.dataset.config) {
-  try {
-    const config = JSON.parse(script.dataset.config);
-    widgetController.init(config);
-  } catch (error) {
-    console.error('Invalid ChatbotWidget configuration:', error);
-  }
-}

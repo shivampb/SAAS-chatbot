@@ -26,7 +26,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ config }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [conversationId] = useState(() => 'conv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9));
+  const [conversationId, setConversationId] = useState<string | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -36,6 +36,37 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ config }) => {
   };
 
   useEffect(() => {
+    // Initialize conversationId from localStorage or create a new one
+    const storedConversationId = localStorage.getItem('chatbotConversationId');
+    if (storedConversationId) {
+      setConversationId(storedConversationId);
+    } else {
+      const newConversationId = 'conv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      localStorage.setItem('chatbotConversationId', newConversationId);
+      setConversationId(newConversationId);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Fetch conversation history if conversationId exists and messages are empty
+    if (conversationId && messages.length === 0) {
+      const fetchHistory = async () => {
+        try {
+          const response = await fetch(`${config.apiUrl}/api/conversation/${conversationId}`);
+          const data = await response.json();
+          // Assuming the backend returns an array of messages in the format { role, content, timestamp }
+          setMessages(data.conversation.map((msg: any) => ({
+            id: Date.now() + Math.random().toString(36).substr(2, 5), // Generate a client-side ID
+            content: msg.content,
+            isUser: msg.role === 'user',
+            timestamp: new Date(msg.timestamp) // Convert timestamp string to Date object
+          })));
+        } catch (error) {
+          console.error('Error fetching conversation history:', error);
+        }
+      };
+      fetchHistory();
+    }
     scrollToBottom();
   }, [messages]);
 
@@ -66,7 +97,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ config }) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: content.trim(),
+          message: content.trim(), // Ensure message is trimmed
           conversationId,
           config: {
             systemPrompt: config.systemPrompt
@@ -74,8 +105,21 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ config }) => {
         })
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to get response');
+      if (!response.ok) { // Handle non-2xx status codes
+        let errorMessage = `Error: ${response.status} ${response.statusText}.`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (jsonError) {
+          // Ignore JSON parsing errors, use the default message
+        }
+        if (response.status >= 400 && response.status < 500) {
+          throw new Error(`Client error: ${errorMessage}`);
+        } else if (response.status >= 500) {
+          throw new Error(`Server error: ${errorMessage}`);
+        } else {
+          throw new Error(`Failed to get response: ${errorMessage}`);
+        }
       }
 
       const data = await response.json();
@@ -90,11 +134,20 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ config }) => {
       setMessages(prev => [...prev, botMessage]);
     } catch (error) {
       console.error('Error sending message:', error);
+      let displayMessage = "Sorry, I'm having trouble connecting right now. Please try again.";
+      if (error instanceof Error) {
+        if (error.message.startsWith('Client error:')) {
+          displayMessage = `Request failed: ${error.message.replace('Client error: ', '')}`;
+        } else if (error.message.startsWith('Server error:')) {
+          displayMessage = `Service error: ${error.message.replace('Server error: ', '')}`;
+        }
+         // For other errors (e.g., network), keep the default connection error message
+      }
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: "Sorry, I'm having trouble connecting right now. Please try again.",
+        content: displayMessage,
         isUser: false,
-        timestamp: new Date()
+        timestamp: new Date(),
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
